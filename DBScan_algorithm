@@ -1,0 +1,80 @@
+
+#import libraries
+
+import pandas as pd # Import pandas for data handling
+import numpy as np # Import numpy for numerical operations
+import matplotlib.pyplot as plt # Import matplotlib for plotting
+
+# Load the dataset
+# Load the cancer dataset from the specified file location
+data = pd.read_csv("/content/cancer (1).csv")
+
+# Select the relevant columns for clustering and plotting
+X = data[['radius_mean', 'texture_mean']].values
+
+# Define functions for distance calculation and DBSCAN clustering
+def euclidean_distance(x1, x2):
+    return np.sqrt(np.sum((x1 - x2) ** 2))
+
+def find_neighbors(X, point_index, eps):
+    neighbors = []
+    for i, x in enumerate(X):
+        if euclidean_distance(X[point_index], x) <= eps:
+            neighbors.append(i)
+    return neighbors
+
+def dbscan(X, eps, min_samples):
+    labels = np.zeros(len(X))
+    cluster_id = 0
+
+    for i in range(len(X)):
+        if labels[i] != 0:
+            continue
+
+        neighbors = find_neighbors(X, i, eps)
+
+        if len(neighbors) < min_samples:
+            labels[i] = -1  # Mark as noise
+        else:
+            cluster_id += 1
+            labels[i] = cluster_id
+            stack = [i]
+
+            while stack:
+                current_point = stack.pop()
+                current_neighbors = find_neighbors(X, current_point, eps)
+
+                for neighbor in current_neighbors:
+                    if labels[neighbor] == 0:
+                        labels[neighbor] = cluster_id
+                        stack.append(neighbor)
+
+    return labels
+
+# Define parameter values for DBSCAN
+eps_values = [0.2, 0.5, 0.2]
+min_samples_values = [6, 6, 3]
+
+# Iterate over parameter combinations and plot DBSCAN results
+for eps, min_samples in zip(eps_values, min_samples_values):
+     # Run DBSCAN with specified parameters to obtain cluster labels
+    cluster_labels = dbscan(X, eps, min_samples)
+
+# Count the number of clusters
+unique_labels = np.unique(cluster_labels)
+num_clusters = len(unique_labels) - 1 if -1 in unique_labels else len(unique_labels)
+
+#Plotting the figure
+plt.figure(figsize=(15, 5))
+
+# Scatter plot the data points using cluster labels for coloring
+for i, (eps, min_samples) in enumerate(zip(eps_values, min_samples_values)):
+   plt.subplot(1,3, i+1)
+   labels = dbscan(X, eps, min_samples)
+   plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='rainbow')
+   plt.title(f"DBSCAN (Eps={eps}, MinPts={min_samples})")
+
+plt.tight_layout()
+plt.show()
+
+
