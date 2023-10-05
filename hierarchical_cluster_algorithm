@@ -1,0 +1,120 @@
+
+
+#Import the necessary library
+
+import pandas as pd # import pandas
+import numpy as np # import numpy
+import matplotlib.pyplot as plt #import pyplot for plotting
+import time
+
+# Load the dataset and select relevant features
+data = pd.read_csv('/content/cancer (1).csv')
+data.drop(['id', 'diagnosis'], axis=1, inplace=True)
+X = data[['radius_mean', 'texture_mean']]
+
+
+## Visulization the dataset
+
+plt.figure(figsize = (8,5))
+#Select the relevent column for clustering and plotting
+plt.scatter(X['radius_mean'],X['texture_mean'],c="b", marker ="*")
+plt.show()
+
+# Define function distance calculating clsuster distance
+def cluster_distance(cluster1, cluster2, X):
+    points1 = X.iloc[cluster1]
+    points2 = X.iloc[cluster2]
+    return np.min(np.linalg.norm(points1.values[:, np.newaxis] - points2.values, axis=2))
+
+# Function to perform single linkage hierarchical clustering
+def single_linkage_clustering(data, k):
+
+  num_samples = data.shape[0]
+  clusters = [[i] for i in range(num_samples)]
+
+  while len(clusters) > k:
+    min_distance = float('inf')
+    merge_clusters = ()
+
+    for i in range(len(clusters)):
+        for j in range(i + 1, len(clusters)):
+          # print(clusters[i], clusters[j])
+          distance = cluster_distance(clusters[i], clusters[j],data)
+          if distance < min_distance:
+              min_distance = distance
+              merge_clusters = (i, j)
+
+    i, j = merge_clusters
+    clusters[i].extend(clusters[j])
+    del clusters[j]
+
+  return clusters
+
+# Function to perform complete linkage hierarchical clustering
+def complete_linkage_clustering(data, k):
+  num_samples = data.shape[0]
+  clusters = [[i] for i in range(num_samples)]
+
+  while len(clusters) > k:
+
+      max_distance = -1
+      merge_clusters = ()
+
+      for i in range(len(clusters)):
+          for j in range(i + 1, len(clusters)):
+              distance = cluster_distance(clusters[i], clusters[j])
+              if distance > max_distance:
+                  max_distance = distance
+                  merge_clusters = (i, j)
+
+      i, j = merge_clusters
+      clusters[i].extend(clusters[j])
+      del clusters[j]
+
+  return clusters
+
+
+
+# Function to perform average linkage hierarchical clustering
+def average_linkage_clustering(data, k):
+    num_samples = data.shape[0]
+    clusters = [[i] for i in range(num_samples)]
+
+    while len(clusters) > k:
+        min_avg_distance = float('inf')
+        merge_clusters = ()
+
+        for i in range(len(clusters)):
+            for j in range(i + 1, len(clusters)):
+                avg_distance = np.mean(cluster_distance(clusters[i], clusters[j]))
+                if avg_distance < min_avg_distance:
+                    min_avg_distance = avg_distance
+                    merge_clusters = (i, j)
+
+        i, j = merge_clusters
+        clusters[i].extend(clusters[j])
+        del clusters[j]
+
+    return clusters
+
+# Perform hierarchical agglomerative clustering for different linkage methods
+k = 2
+single_linkage_clusters = single_linkage_clustering(X, k)
+complete_linkage_clusters = complete_linkage_clustering(X, k)
+average_linkage_clusters = average_linkage_clustering(X, k)
+
+# Visualize the clusters using 'radius_mean' on the X-axis and 'texture_mean' on the Y-axis
+def plot_clusters(clusters, title):
+    colors = ['r', 'g', 'b', 'c', 'm', 'y']
+    for i, cluster in enumerate(clusters):
+        cluster_data = X.iloc[cluster]
+        plt.scatter(cluster_data['radius_mean'], cluster_data['texture_mean'], c=colors[i], label=f'Cluster {i + 1}')
+    plt.xlabel('radius_mean')
+    plt.ylabel('texture_mean')
+    plt.title(title)
+    plt.legend()
+    plt.show()
+
+plot_clusters(single_linkage_clusters, 'Hierarchical Agglomerative Clustering (Single Linkage)')
+plot_clusters(complete_linkage_clusters, 'Hierarchical Agglomerative Clustering (Complete Linkage)')
+plot_clusters(average_linkage_clusters, 'Hierarchical Agglomerative Clustering (Average Linkage)')
